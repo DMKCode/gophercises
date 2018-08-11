@@ -11,6 +11,7 @@ package main
 import (
 	"bufio"
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -19,13 +20,16 @@ import (
 )
 
 func main() {
-	csvContents := readFile("problems.csv")
+	// run in terminal to test flag: go run main.go -file="../problems2.csv"
+	filePathPtr := flag.String("file", "problems.csv", "file path as a string")
+	flag.Parse()
+	csvContents := readFile(*filePathPtr)
 	parsedCsv := parseCsv(csvContents)
 	startQuiz(parsedCsv)
 }
 
-func readFile(filename string) string {
-	bs, err := ioutil.ReadFile(filename)
+func readFile(filepath string) string {
+	bs, err := ioutil.ReadFile(filepath)
 
 	if err != nil {
 		fmt.Println("Error:", err)
