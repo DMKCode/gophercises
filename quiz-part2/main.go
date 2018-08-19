@@ -17,15 +17,17 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
 	// run in terminal to test flag: go run main.go -file="../problems2.csv"
 	filePathPtr := flag.String("file", "problems.csv", "file path as a string")
+	timeLimit := flag.Int("limit", 30, "the time limit for the quiz in seconds")
 	flag.Parse()
 	csvContents := readFile(*filePathPtr)
 	parsedCsv := parseCsv(csvContents)
-	startQuiz(parsedCsv)
+	startQuiz(parsedCsv, *timeLimit)
 }
 
 func readFile(filepath string) string {
@@ -51,25 +53,34 @@ func parseCsv(csvContents string) [][]string {
 	return records
 }
 
-func startQuiz(problems [][]string) {
+func startQuiz(problems [][]string, timeLimit int) {
+	timer := time.NewTimer(time.Duration(timeLimit) * time.Second)
 	correctAnswerCount := 0
 	for _, p := range problems {
 		fmt.Println(p[0])
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Enter answer: ")
-		answer, _ := reader.ReadString('\n')
-		answer = strings.TrimSpace(answer)
+		answerCh := make(chan string)
 
-		// checking the type of a variable
-		// fmt.Println(reflect.TypeOf(answer))
+		go func() {
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Print("Enter answer: ")
+			answer, _ := reader.ReadString('\n')
+			answer = strings.TrimSpace(answer)
+			answerCh <- answer
+		}()
 
-		if answer == p[1] {
-			fmt.Println("correct!")
-			correctAnswerCount++
-		} else {
-			fmt.Println("wrong!")
+		select {
+		case <-timer.C:
+			fmt.Printf("You had %d correct answers!", correctAnswerCount)
+			return
+		case answer := <-answerCh:
+			if answer == p[1] {
+				fmt.Println("correct!")
+				correctAnswerCount++
+			} else {
+				fmt.Println("wrong!")
+			}
+			fmt.Println("")
 		}
-		fmt.Println("")
 	}
 
 	fmt.Printf("You had %d correct answers!", correctAnswerCount)
